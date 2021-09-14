@@ -1,3 +1,8 @@
+import json
+from os import curdir
+import sqlite3
+from sqlite3.dbapi2 import DatabaseError
+from models import Employee
 EMPLOYEES = [
     {
         "id": 1,
@@ -41,17 +46,77 @@ def create_employee(employee):
 
 
 def get_single_employee(id):
-    requested_employee = None
+    with sqlite3.connect("./kennel.db") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
 
-    for employee in EMPLOYEES:
-        if employee["id"] == id:
-            requested_employee = employee
+        db_cursor.execute("""
+        SELECT
+            e.id,
+            e.name,
+            e.address,
+            e.location_id
+        FROM employee e
+        WHERE e.id = ?
+        """, (id,))
 
-    return requested_employee
+        data = db_cursor.fetchone()
+
+        employee = Employee(data['id'], data['name'],
+                            data['address'], data['location_id'])
+
+        return json.dumps(employee.__dict__)
 
 
 def get_all_employees():
-    return EMPLOYEES
+    with sqlite3.connect("./kennel.db") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            e.id,
+            e.name,
+            e.address,
+            e.location_id
+        FROM employee e
+        """)
+        dataset = db_cursor.fetchall()
+
+        employees = []
+
+        for row in dataset:
+            employee = Employee(row['id'], row['name'],
+                                row['address'], row['location_id'])
+
+            employees.append(employee.__dict__)
+    return json.dumps(employees)
+
+
+def get_employees_by_location_id(location_id):
+    with sqlite3.connect("./kennel.db") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        SELECT
+            e.id,
+            e.name,
+            e.address,
+            e.location_id
+        FROM employee e
+        WHERE e.location_id = ?
+        """, (location_id, ))
+        dataset = db_cursor.fetchall()
+
+        employees = []
+
+        for row in dataset:
+            employee = Employee(row['id'], row['name'],
+                                row['address'], row['location_id'])
+
+            employees.append(employee.__dict__)
+    return json.dumps(employees)
 
 
 def update_employee(id, new_employee):
@@ -62,11 +127,9 @@ def update_employee(id, new_employee):
 
 
 def delete_employee(id):
-    employee_index = -1
-
-    for index, employee in enumerate(EMPLOYEES):
-        if employee["id"] == id:
-            employee_index = index
-
-    if employee_index >= 0:
-        EMPLOYEES.pop(employee_index)
+    with sqlite3.connect("./kennel.db") as conn:
+        db_cursor = conn.cursor()
+        db_cursor.execute("""
+        DELETE FROM employee
+        WHERE id = ?
+        """, (id,))

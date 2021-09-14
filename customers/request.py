@@ -1,3 +1,7 @@
+import json
+import sqlite3
+from models import Customer
+
 CUSTOMERS = [
     {
         "id": 1,
@@ -41,17 +45,79 @@ def create_customer(customer):
 
 
 def get_single_customer(id):
-    requested_customer = None
+    with sqlite3.connect("./kennel.db") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+        db_cursor.execute("""
+        SELECT
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        FROM customer c
+        WHERE c.id = ?
+        """, (id,))
 
-    for customer in CUSTOMERS:
-        if customer["id"] == id:
-            requested_customer = customer
+        data = db_cursor.fetchone()
 
-    return requested_customer
+        customer = Customer(data['id'], data['name'],
+                            data['address'], data['email'], data['password'])
+
+        return json.dumps(customer.__dict__)
 
 
 def get_all_customers():
-    return CUSTOMERS
+    with sqlite3.connect("./kennel.db") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+        db_cursor.execute("""
+        SELECT
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        FROM customer c
+        """)
+
+        customers = []
+
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+            customer = Customer(
+                row['id'], row['name'], row['address'], row['email'], row['password'])
+
+            customers.append(customer.__dict__)
+
+    return json.dumps(customers)
+
+
+def get_customers_by_email(email):
+    with sqlite3.connect("./kennel.db") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
+        db_cursor.execute("""
+        SELECT
+            c.id,
+            c.name,
+            c.address,
+            c.email,
+            c.password
+        FROM customer c
+        WHERE c.email = ?
+        """, (email, ))
+
+        dataset = db_cursor.fetchall()
+        customers = []
+
+        for row in dataset:
+            customer = Customer(
+                row['id'], row['name'], row['address'], row['email'], row['password'])
+            customers.append(customer.__dict__)
+
+    return json.dumps(customers)
 
 
 def update_customer(id, new_customer):
@@ -62,11 +128,9 @@ def update_customer(id, new_customer):
 
 
 def delete_customer(id):
-    customer_index = -1
-
-    for index, customer in enumerate(CUSTOMERS):
-        if customer["id"] == id:
-            customer_index = index
-
-    if customer_index >= 0:
-        CUSTOMERS.pop(customer_index)
+    with sqlite3.connect("./kennel.db") as conn:
+        db_cursor = conn.cursor()
+        db_cursor.execute("""
+        DELETE FROM customer
+        WHERE id = ?
+        """, (id,))
