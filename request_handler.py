@@ -157,25 +157,24 @@ class HandleRequests(BaseHTTPRequestHandler):
     # It handles any PUT request.
 
     def do_PUT(self):
-        self._set_headers(204)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
 
-    # Parse the URL
+        # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-    # Delete a single animal from the list
-        if resource == "animals":
-            update_animal(id, post_body)
-        elif resource == "employees":
-            update_employee(id, post_body)
-        elif resource == "locations":
-            update_location(id, post_body)
-        elif resource == "customers":
-            update_customer(id, post_body)
+        success = False
 
-    # Encode the new animal and send in response
+        if resource == "animals":
+            success = update_animal(id, post_body)
+        # rest of the elif's
+
+        if success:
+            self._set_headers(204)
+        else:
+            self._set_headers(404)
+
         self.wfile.write("".encode())
 
     def do_DELETE(self):
